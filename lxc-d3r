@@ -2,9 +2,11 @@
 
 #
 # lxc: linux Container library
+# Customised for use as a D3R vm template
 
 # Authors:
 # Daniel Lezcano <daniel.lezcano@free.fr>
+# Ronan Chilvers <ronan@d3r.com>
 
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,6 +29,7 @@ configure_debian()
 {
     rootfs=$1
     hostname=$2
+    ipv4=$3
 
     # squeeze only has /dev/tty and /dev/tty0 by default,
     # therefore creating missing device nodes for tty1-4.
@@ -68,7 +71,10 @@ auto lo
 iface lo inet loopback
 
 auto eth0
-iface eth0 inet dhcp
+iface eth0 inet static
+    address $ipv4
+    netmask 255.255.255.192
+    gateway 95.154.223.129
 EOF
 
     # set the hostname
@@ -162,7 +168,7 @@ copy_debian()
 
 install_debian()
 {
-    cache="/var/cache/lxc/debian"
+    cache="/var/cache/lxc/d3r-$SUITE"
     rootfs=$1
     mkdir -p /var/lock/subsys/
     (
@@ -235,7 +241,7 @@ lxc.network.type = veth
 lxc.network.flags = up
 lxc.network.link = br0
 lxc.network.name = eth0
-lxc.network.ipv4 = 
+lxc.network.ipv4 = $ipv4
 EOF
 
     if [ $? -ne 0 ]; then
@@ -279,7 +285,7 @@ EOF
 
 echo "$@"
 
-options=$(getopt -o hp:n:c -l help,path:,name:,ipv4:,clean -- "$@")
+options=$(getopt -o hp:n:i:c -l help,path:,name:,ipv4:,clean -- "$@")
 if [ $? -ne 0 ]; then
         usage $(basename $0)
 	exit 1
@@ -336,7 +342,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-configure_debian $rootfs $name
+configure_debian $rootfs $name $ipv4
 if [ $? -ne 0 ]; then
     echo "failed to configure debian for a container"
     exit 1
