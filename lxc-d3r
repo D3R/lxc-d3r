@@ -279,7 +279,7 @@ EOF
 
 echo "$@"
 
-options=$(getopt -o hp:n:c -l help,path:,name:,clean -- "$@")
+options=$(getopt -o hp:n:c -l help,path:,name:,ipv4:,clean -- "$@")
 if [ $? -ne 0 ]; then
         usage $(basename $0)
 	exit 1
@@ -297,6 +297,8 @@ do
         *)              break ;;
     esac
 done
+
+echo $ipv4
 
 if [ ! -z "$clean" -a -z "$path" ]; then
     clean || exit 1
@@ -340,7 +342,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-copy_configuration $path $rootfs $name
+copy_configuration $path $rootfs $name $ipv4
 if [ $? -ne 0 ]; then
     echo "failed write configuration file"
     exit 1
