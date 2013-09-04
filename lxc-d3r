@@ -126,7 +126,8 @@ isc-dhcp-client,\
 netbase,\
 net-tools,\
 iproute,\
-openssh-server
+openssh-server,\
+iputils-ping
 
     cache=$1
     arch=$2
@@ -174,7 +175,7 @@ copy_debian()
 
 install_debian()
 {
-    cache="/var/cache/lxc/d3r-$SUITE"
+    cache="/var/cache/lxc/d3r-$SUITEd3r"
     rootfs=$1
     mkdir -p /var/lock/subsys/
     (
@@ -260,7 +261,7 @@ EOF
 
 clean()
 {
-    cache="/var/cache/lxc/d3r-$SUITE" 
+    cache="/var/cache/lxc/d3r" 
 
     if [ ! -e $cache ]; then
 	exit 0
