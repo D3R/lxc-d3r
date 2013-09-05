@@ -29,6 +29,10 @@ out(){
     echo " - $1"
 }
 
+gen_pw(){
+    cat /dev/urandom | /usr/bin/tr -dc _A-Z-a-z-0-9 | head -c12
+}
+
 configure_debian()
 {
     rootfs=$1
@@ -69,6 +73,8 @@ EOF
     mkdir -p $rootfs/selinux
     echo 0 > $rootfs/selinux/enforce
 
+    out "Configuring network interfaces"
+
     # configure the network using the dhcp
     cat <<EOF > $rootfs/etc/network/interfaces
 auto lo
@@ -81,12 +87,24 @@ iface eth0 inet static
     gateway 95.154.223.129
 EOF
 
-    out "Network interface eth0 configured with ip $ipv4"
+    # Update /etc/hosts with local hostname
+    cat <<EOF > $rootfs/etc/hosts
+127.0.0.1   localhost 
+127.0.0.1   $hostname
+::1     localhost ip6-localhost ip6-loopback
+fe00::0     ip6-localnet
+ff00::0     ip6-mcastprefix
+ff02::1     ip6-allnodes
+ff02::2     ip6-allrouters    
+EOF
 
     # set the hostname
     cat <<EOF > $rootfs/etc/hostname
 $hostname
 EOF
+
+    out "Network interface eth0 configured with ip $ipv4"
+    out "Hostname configured as $hostname"
 
     # reconfigure some services
     if [ -z "$LANG" ]; then
@@ -103,8 +121,9 @@ EOF
     chroot $rootfs /usr/sbin/update-rc.d -f hwclock.sh remove
     chroot $rootfs /usr/sbin/update-rc.d -f hwclockfirst.sh remove
 
-    echo "root:root" | chroot $rootfs chpasswd
-    out "Root password is 'root', please change !"
+    passwd=$(gen_pw)
+    echo "root:$passwd" | chroot $rootfs chpasswd
+    out "Root password  : $passwd"
 
     return 0
 }
@@ -129,7 +148,10 @@ iproute,\
 openssh-server,\
 iputils-ping,\
 aptitude,\
-wget
+wget,\
+cron,\
+curl,\
+ntpdate
 
     cache=$1
     arch=$2
