@@ -127,7 +127,9 @@ netbase,\
 net-tools,\
 iproute,\
 openssh-server,\
-iputils-ping
+iputils-ping,\
+aptitude,\
+wget
 
     cache=$1
     arch=$2
@@ -175,7 +177,7 @@ copy_debian()
 
 install_debian()
 {
-    cache="/var/cache/lxc/d3r-$SUITEd3r"
+    cache="/var/cache/lxc/d3r"
     rootfs=$1
     mkdir -p /var/lock/subsys/
     (
@@ -312,14 +314,14 @@ do
     esac
 done
 
-out "name : $name"
-out "path : $path"
-out "ipv4 : $ipv4"
-
 if [ ! -z "$clean" -a -z "$path" ]; then
     clean || exit 1
     exit 0
 fi
+
+out "name : $name"
+out "path : $path"
+out "ipv4 : $ipv4"
 
 type debootstrap
 if [ $? -ne 0 ]; then
