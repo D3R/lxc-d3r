@@ -24,6 +24,7 @@
 
 SUITE=${SUITE:-wheezy}
 MIRROR=${MIRROR:-http://cdn.debian.net/debian}
+PASSWD_STORE=${PASSWD_STORE:-/var/lib/lxc/passwd.store}
 
 out(){
     echo " - $1"
@@ -31,6 +32,13 @@ out(){
 
 gen_pw(){
     cat /dev/urandom | /usr/bin/tr -dc _A-Z-a-z-0-9 | head -c12
+}
+
+store_password(){
+    host=$1
+    name=$2
+    passwd=$3
+    echo "$host : $name : $passwd" > $PASSWD_STORE
 }
 
 configure_debian()
@@ -123,7 +131,9 @@ EOF
 
     passwd=$(gen_pw)
     echo "root:$passwd" | chroot $rootfs chpasswd
-    out "Root password  : $passwd"
+    store_password $name root $passwd
+    out "Root password : $passwd"
+    out "Root password save to store at $PASSWD_STORE"
 
     return 0
 }
