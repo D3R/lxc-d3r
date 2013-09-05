@@ -161,7 +161,8 @@ aptitude,\
 wget,\
 cron,\
 curl,\
-ntpdate
+ntpdate,\
+rsyslog
 
     cache=$1
     arch=$2
