@@ -1,0 +1,64 @@
+#!/bin/bash
+# 
+# lxc-d3r installation / update script
+
+out(){
+    echo " - $1"
+}
+
+err(){
+    echo " ! $1"
+}
+
+download_file(){
+    from=$1
+    to=$2
+
+    wget --quiet -O $to $from 
+    if [ $? -ne 0 ]; then
+        err "failed downloading $from"
+        return 1
+    fi
+}
+
+BASE_URL="https://raw.github.com/D3R/lxc-d3r/master"
+TEMPLATE_DIR="/usr/share/lxc/templates"
+SCRIPT_DIR="/usr/local/bin"
+TEMPLATES="lxc-d3r-stack"
+SCRIPTS="lxc-d3r-create"
+
+out "installing lxc-d3r from repository"
+
+type wget 2>&1 > /dev/null
+if [ $? -ne 0 ]; then
+    err "wget command is missing or not in your path"
+    err "install it with:"
+    err "apt-get install wget"
+    exit 1
+fi
+
+out "lxc templates"
+for file in $TEMPLATES; do
+    from="$BASE_URL/$file"
+    to="$TEMPLATE_DIR/$file"
+    out "$from -> $to"
+    download_file $from $to
+    if [ $? -ne 0 ]; then
+        err "unable to download $from"
+        exit 1
+    fi
+done
+
+out "support scripts"
+for F in $SCRIPTS; do
+    from="$BASE_URL/$file"
+    to="$SCRIPT_DIR/$file"
+    out "$from -> $to"
+    download_file $from $to
+    if [ $? -ne 0 ]; then
+        err "unable to download $from"
+        exit 1
+    fi
+done
+
+out "done"
