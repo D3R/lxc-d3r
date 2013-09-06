@@ -56,7 +56,7 @@ for file in $TEMPLATES; do
 done
 
 out "support scripts"
-for F in $SCRIPTS; do
+for file in $SCRIPTS; do
     from="$BASE_URL/$file"
     to="$SCRIPT_DIR/$file"
     out "$from -> $to"
