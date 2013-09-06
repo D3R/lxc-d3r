@@ -19,6 +19,12 @@ download_file(){
         err "failed downloading $from"
         return 1
     fi
+
+    chmod a+x $to
+    if [ $? -ne 0 ]; then
+        err "failed setting permissions on $from"
+        return 1
+    fi    
 }
 
 BASE_URL="https://raw.github.com/D3R/lxc-d3r/master"
