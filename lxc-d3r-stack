@@ -325,8 +325,6 @@ EOF
     return 0
 }
 
-echo "$@"
-
 options=$(getopt -o hp:n:i:c -l help,path:,name:,ipv4:,clean -- "$@")
 if [ $? -ne 0 ]; then
         usage $(basename $0)

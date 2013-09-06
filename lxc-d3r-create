@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# LXC machine creation script
+#
+
+out(){
+    echo " - $1"
+}
+
+err(){
+    echo " ! $1"
+}
+
+usage()
+{
+    cat <<EOF
+$1 -h|--help -i|--ipv4=<ip address> [-n|--name=<container name>] [-t|--template=<template name>] [--vgname]
+
+    -h|--help       Show this help message
+    -i|--ipv4       The IPv4 address this container should have
+    -n|--name       (Optional) The name of the container. If not specified, the name is created from the 
+                    container host short hostname and the last octet of the ipv4 address
+    -t|--template   (Optional) The container template to use. The default is to use the lxc-d3r-stack template
+    --vgname        (Optional) The LVM volume group to use for storage. Defaults to vg_storage
+EOF
+    return 0
+}
+
+
+### MAIN Script Body
+
+LXC_CREATE=$(which lxc-create)
+
+options=$(getopt -o hn:i: -l help,name:,ipv4:,vgname: -- "$@")
+if [ $? -ne 0 ]; then
+    usage $(basename $0)
+    exit 1
+fi
+eval set -- "$options"
+
+while true
+do
+    case "$1" in
+        -h|--help)      usage $0 && exit 0;;
+        -n|--name)      name=$2; shift 2;;
+        -i|--ipv4)      ipv4=$2; shift 2;;
+        -t|--template)  template=$2; shift 2;;
+        --vgname)       vgname=$2; shift 2;;
+        --)             shift 1; break ;;
+        *)              break ;;
+    esac
+done
+
+out "lxc-d3r-create starting"
+
+if [ -z "$ipv4" ]; then
+    err "IPv4 address is required"
+    exit 1
+fi
+
+if [ -z "$name" ]; then
+    octet=$( echo $ipv4 | awk -F. '{print $4}' )
+    hostname=$(hostname -s)
+    name="$hostname-$octet"
+fi
+
+if [ -z "$template" ]; then
+    template=d3r-stack
+fi
+
+if [ -z "$vgname" ]; then
+    vgname=vg_storage
+fi
+
+out "configuration is:"
+out "ipv4 : $ipv4"
+out "name : $name"
+out "template : $template"
+out "volume group : $vgname"
+
+out "please review the above configuration"
+out "continue? (y/n)"
+read CONT
+if [ "y" != "$CONT" ]; then
+  out "aborting as requested"
+  exit 0
+fi
+
+out "building $hostname with ip $ipv4 from template $template"
+
+$LXC_CREATE -n $hostname -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4
+
+out "lxc-d3r-create completed"
