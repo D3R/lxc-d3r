@@ -55,7 +55,7 @@ out "lxc-d3r-create starting"
 
 if [ -z "$ipv4" ]; then
     err "IPv4 address is required"
-    usage && exit 1
+    exit 1
 fi
 
 if [ -z "$name" ]; then
