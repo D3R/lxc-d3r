@@ -88,6 +88,6 @@ fi
 
 out "building $hostname with ip $ipv4 from template $template"
 
-$LXC_CREATE -n $hostname -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4
+$LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4
 
 out "lxc-d3r-create completed"
