@@ -93,6 +93,6 @@ $LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $i
 
 out "configuring auto-start for $name"
 
-$LN -s /var/lib/lxc/$name/config /etc/lxc/auto/$name_config
+$LN -s /var/lib/lxc/$name/config /etc/lxc/auto/${name}_config
 
 out "lxc-d3r-create completed"
