@@ -17,6 +17,7 @@ usage()
 $1 -h|--help -i|--ipv4=<ip address> [-n|--name=<container name>] [-t|--template=<template name>] [--vgname]
 
     -h|--help       Show this help message
+    -o|--option     The VM hardware option to use, currently 1 or 2. This sets RAM and CPU limits
     -i|--ipv4       The IPv4 address this container should have
     -n|--name       (Optional) The name of the container. If not specified, the name is created from the 
                     container host short hostname and the last octet of the ipv4 address
@@ -32,7 +33,7 @@ EOF
 LXC_CREATE=$(which lxc-create)
 LN=$(which ln)
 
-options=$(getopt -o hn:i: -l help,name:,ipv4:,vgname: -- "$@")
+options=$(getopt -o hn:i:o: -l help,name:,ipv4:,vgname:,option: -- "$@")
 if [ $? -ne 0 ]; then
     usage $(basename $0)
     exit 1
@@ -46,6 +47,7 @@ do
         -n|--name)      name=$2; shift 2;;
         -i|--ipv4)      ipv4=$2; shift 2;;
         -t|--template)  template=$2; shift 2;;
+        -o|--option)    option=$2; shift 2;;
         --vgname)       vgname=$2; shift 2;;
         --)             shift 1; break ;;
         *)              break ;;
@@ -65,6 +67,10 @@ if [ -z "$name" ]; then
     name="$hostname-$octet"
 fi
 
+if [ -z "$option" ]; then
+    option=1
+fi
+
 if [ -z "$template" ]; then
     template=d3r-stack
 fi
@@ -74,6 +80,7 @@ if [ -z "$vgname" ]; then
 fi
 
 out "configuration is:"
+out "vm option : $option"
 out "ipv4 : $ipv4"
 out "name : $name"
 out "template : $template"
@@ -89,10 +96,12 @@ fi
 
 out "building $hostname with ip $ipv4 from template $template"
 
-$LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4
+# $LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4 -o $option
+$LXC_CREATE -n $name -t $template -- -i $ipv4 -o $option
 
-out "configuring auto-start for $name"
-
-$LN -s /var/lib/lxc/$name/config /etc/lxc/auto/${name}_config
+if [ ! -e /etc/lxc/auto/${name}_config ]; then
+    out "configuring auto-start for $name"
+    $LN -s /var/lib/lxc/$name/config /etc/lxc/auto/${name}_config
+fi
 
 out "lxc-d3r-create completed"

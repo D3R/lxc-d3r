@@ -116,8 +116,8 @@ EOF
 
     # reconfigure some services
     if [ -z "$LANG" ]; then
-	chroot $rootfs locale-gen en_US.UTF-8 UTF-8
-	chroot $rootfs update-locale LANG=en_US.UTF-8
+	chroot $rootfs locale-gen en_GB.UTF-8 en_US.UTF-8 UTF-8
+	chroot $rootfs update-locale LANG=en_GB.UTF-8
     else
 	chroot $rootfs locale-gen $LANG $(echo $LANG | cut -d. -f2)
 	chroot $rootfs update-locale LANG=$LANG
@@ -250,6 +250,7 @@ copy_configuration()
     rootfs=$2
     hostname=$3
     ipv4=$4
+    option=$5
 
     grep -q "^lxc.rootfs" $path/config 2>/dev/null || echo "lxc.rootfs = $rootfs" >> $path/config
     cat <<EOF >> $path/config
@@ -291,6 +292,37 @@ EOF
 	return 1
     fi
 
+    add_capacity_option $path $option
+
+
+    return 0
+}
+
+add_capacity_option()
+{
+    path=$1
+    option=$2
+
+    case $option in
+        2)
+            cat <<EOF >> $path/config
+lxc.cgroup.memory.limit_in_bytes = 8G
+lxc.cgroup.cpu.shares = 2048
+EOF
+            ;;
+        *)
+            cat <<EOF >> $path/config
+lxc.cgroup.memory.limit_in_bytes = 4G
+lxc.cgroup.cpu.shares = 1024
+EOF
+            ;;
+    esac
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to add capacity options"
+        return 1
+    fi
+
     return 0
 }
 
@@ -300,16 +332,54 @@ add_repository()
     name=$2
     repository=$3
 
-    chroot $rootfs "echo '$repository' > /etc/apt/sources.list.d/$name.list"
+    out "adding repository $name - $repository"
+    echo "$repository" > $rootfs/etc/apt/sources.list.d/$name.list
     if [ $? -ne 0 ]; then
         echo "Failed to add repository $name"
         return 1
     fi
-    chroot $rootfs aptitude -y update
+    chroot $rootfs apt-get -y --allow-unauthenticated update
     if [ $? -ne 0 ]; then
         echo "Failed to update apt cache from repository $name"
         return 1
     fi
+    return 0
+}
+
+install_d3r_stack()
+{
+    rootfs=$1
+
+    add_repository $rootfs "D3R_Repo" "deb http://s3.apt.d3r.com/ $SUITE contrib"
+    if [ $? -ne 0 ]; then
+        echo "failed to add repository"
+        exit 1
+    fi
+
+    chroot $rootfs apt-get -y --allow-unauthenticated install d3r-extra-repos
+    if [ $? -ne 0 ]; then
+        echo "stack install failed"
+        return 1
+    fi
+
+    # additional packages
+    chroot $rootfs apt-get -y --allow-unauthenticated update
+    if [ $? -ne 0 ]; then
+        echo "stack install failed"
+        return 1
+    fi
+    chroot $rootfs apt-get -y --allow-unauthenticated dist-upgrade
+    if [ $? -ne 0 ]; then
+        echo "stack install failed"
+        return 1
+    fi
+
+    chroot $rootfs apt-get -y --allow-unauthenticated --download-only install d3r-stack d3r-admin d3r-fastcgi d3r-tools d3r-holding d3r-security d3r-redis
+    if [ $? -ne 0 ]; then
+        echo "stack download failed"
+        return 1
+    fi
+
     return 0
 }
 
@@ -339,12 +409,13 @@ clean()
 usage()
 {
     cat <<EOF
-$1 -h|--help -p|--path=<path> --clean
+$1 -h|--help -p|--path=<path> 
+$1 --clean
 EOF
     return 0
 }
 
-options=$(getopt -o hp:n:i:c -l help,path:,name:,ipv4:,clean -- "$@")
+options=$(getopt -o hp:n:i:c:o: -l help,path:,name:,ipv4:,clean,option: -- "$@")
 if [ $? -ne 0 ]; then
         usage $(basename $0)
 	exit 1
@@ -354,13 +425,14 @@ eval set -- "$options"
 while true
 do
     case "$1" in
-        -h|--help)      usage $0 && exit 0;;
-        -p|--path)      path=$2; shift 2;;
-    	-n|--name)      name=$2; shift 2;;
-    	-c|--clean)     clean=$2; shift 2;;
-        -i|--ipv4)      ipv4=$2; shift 2;;
-        --)             shift 1; break ;;
-        *)              break ;;
+        -h|--help)     usage $0 && exit 0;;
+        -p|--path)     path=$2; shift 2;;
+    	-n|--name)     name=$2; shift 2;;
+    	-c|--clean)    clean=$2; shift 2;;
+        -i|--ipv4)     ipv4=$2; shift 2;;
+        -o|--option)   option=$2; shift 2;;
+        --)            shift 1; break ;;
+        *)             break ;;
     esac
 done
 
@@ -368,10 +440,6 @@ if [ ! -z "$clean" -a -z "$path" ]; then
     clean || exit 1
     exit 0
 fi
-
-out "name : $name"
-out "path : $path"
-out "ipv4 : $ipv4"
 
 type debootstrap
 if [ $? -ne 0 ]; then
@@ -389,6 +457,15 @@ if [ "$(id -u)" != "0" ]; then
     exit 1
 fi
 
+if [ -z "$option" ]; then
+    option=1
+fi
+
+out "name   : $name"
+out "path   : $path"
+out "ipv4   : $ipv4"
+out "option : $option"
+
 # detect rootfs
 config="$path/config"
 if grep -q '^lxc.rootfs' $config 2>/dev/null ; then
@@ -396,7 +473,6 @@ if grep -q '^lxc.rootfs' $config 2>/dev/null ; then
 else
     rootfs=$path/rootfs
 fi
-
 
 install_debian $rootfs
 if [ $? -ne 0 ]; then
@@ -410,15 +486,15 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-copy_configuration $path $rootfs $name $ipv4
+copy_configuration $path $rootfs $name $ipv4 $option
 if [ $? -ne 0 ]; then
     echo "failed write configuration file"
     exit 1
 fi
 
-add_repository $rootfs "D3R_Repo" "deb http://s3.apt.d3r.com/ $SUITE contrib"
+install_d3r_stack $rootfs
 if [ $? -ne 0 ]; then
-    echo "failed to add repository"
+    echo "failed to install d3r-stack"
     exit 1
 fi
 
