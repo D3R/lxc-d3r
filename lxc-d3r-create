@@ -96,8 +96,14 @@ fi
 
 out "building $hostname with ip $ipv4 from template $template"
 
-# $LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4 -o $option
-$LXC_CREATE -n $name -t $template -- -i $ipv4 -o $option
+vgdisplay $vgname 2>&1 > /dev/null
+if [ $? -ne 0 ]; then
+    err "vg $vgname not found - disabling lvm use"
+    $LXC_CREATE -n $name -t $template -- -i $ipv4 -o $option
+else
+    out "using $vgname volume group"
+    $LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4 -o $option
+fi
 
 if [ ! -e /etc/lxc/auto/${name}_config ]; then
     out "configuring auto-start for $name"
