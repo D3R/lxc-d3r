@@ -294,6 +294,25 @@ EOF
     return 0
 }
 
+add_repository()
+{
+    rootfs=$1
+    name=$2
+    repository=$3
+
+    chroot $rootfs "echo '$repository' > /etc/apt/sources.list.d/$name.list"
+    if [ $? -ne 0 ]; then
+        echo "Failed to add repository $name"
+        return 1
+    fi
+    chroot $rootfs aptitude -y update
+    if [ $? -ne 0 ]; then
+        echo "Failed to update apt cache from repository $name"
+        return 1
+    fi
+    return 0
+}
+
 clean()
 {
     cache="/var/cache/lxc/d3r" 
@@ -394,6 +413,12 @@ fi
 copy_configuration $path $rootfs $name $ipv4
 if [ $? -ne 0 ]; then
     echo "failed write configuration file"
+    exit 1
+fi
+
+add_repository "D3R_Repo" "deb http://s3.apt.d3r.com/ $SUITE contrib"
+if [ $? -ne 0 ]; then
+    echo "failed to add repository"
     exit 1
 fi
 

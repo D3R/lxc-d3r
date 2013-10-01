@@ -30,6 +30,7 @@ EOF
 ### MAIN Script Body
 
 LXC_CREATE=$(which lxc-create)
+LN=$(which ln)
 
 options=$(getopt -o hn:i: -l help,name:,ipv4:,vgname: -- "$@")
 if [ $? -ne 0 ]; then
@@ -89,5 +90,9 @@ fi
 out "building $hostname with ip $ipv4 from template $template"
 
 $LXC_CREATE -n $name -t $template -B lvm --vgname $vgname --fssize 100g -- -i $ipv4
+
+out "configuring auto-start for $name"
+
+$LN -s /var/lib/lxc/$name/config /etc/lxc/auto/$name_config
 
 out "lxc-d3r-create completed"
