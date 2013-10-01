@@ -416,7 +416,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-add_repository "D3R_Repo" "deb http://s3.apt.d3r.com/ $SUITE contrib"
+add_repository $rootfs "D3R_Repo" "deb http://s3.apt.d3r.com/ $SUITE contrib"
 if [ $? -ne 0 ]; then
     echo "failed to add repository"
     exit 1
