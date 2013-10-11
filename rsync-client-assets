@@ -1,0 +1,66 @@
+#!/bin/bash
+
+out(){
+    echo " - $1"
+}
+
+err(){
+    echo " ! $1"
+}
+
+usage()
+{
+    cat <<EOF
+$1 -h|--help -s|--server=<server> -c|--client=<client handle>
+
+    -h|--help       Show this help message
+    -s|--server     Server to connect to
+    -c|--client     The client handle to use. The script will rsync from /clients/<client handle>/production/web/assets/*
+EOF
+    return 0
+}
+
+
+options=$(getopt -o hs:c: -l help,server:,client: -- "$@")
+if [ $? -ne 0 ]; then
+    usage $(basename $0)
+    exit 1
+fi
+eval set -- "$options"
+
+while true
+do
+    case "$1" in
+        -h|--help)      usage $0 && exit 0;;
+        -s|--server)    server=$2; shift 2;;
+        -c|--client)    client=$2; shift 2;;
+        --)             shift 1; break ;;
+        *)              break ;;
+    esac
+done
+
+if [ -z "$server" ]; then
+    err "Server hostname is required"
+    usage
+    exit 1
+fi
+
+if [ -z "$client" ]; then
+    err "Server hostname is required"
+    usage
+    exit 1
+fi
+
+RSYNC=$(which rsync)
+
+out "Server : $server"
+out "Client : $client"
+
+$RSYNC -avz siteadmin@$server:~/$client/production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
+if [ $? -ne 0 ]; then
+    err "Unable to rsync assets"
+    exit 1
+fi
+
+out "Asset rsync finished ok"
+exit 0

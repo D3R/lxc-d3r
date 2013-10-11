@@ -1,0 +1,55 @@
+#!/bin/sh
+
+out(){
+    logger "$1"
+    echo " - $1"
+}
+
+err(){
+    logger " ERR : $1"
+    echo " ! $1"
+}
+
+options=$(getopt -o k:s: -l key:,secret: -- "$@")
+if [ $? -ne 0 ]; then
+    usage $(basename $0)
+    exit 1
+fi
+eval set -- "$options"
+
+while true
+do
+    case "$1" in
+        -k|--key)       key=$2; shift 2;;
+        -s|--secret)    secret=$2; shift 2;;
+        --)             shift 1; break ;;
+        *)              break ;;
+    esac
+done
+
+if [ -z "$key" ] || [ -z "$secret" ]; then
+    err "no ec2 credentials provided"
+    exit(1);
+fi
+
+out "updating apt cache"
+apt-get update
+
+out "install git / curl"
+apt-get install -y git curl
+
+out "cloning build scripts"
+cd ~root
+git clone https://github.com/andsens/build-debian-cloud.git 
+
+out "building image"
+cd ~root/build-debian-cloud
+curl https://github.com/andsens/build-debian-cloud/pull/79.patch | git am
+# ./build-debian-cloud ec2 --volume-size 50 --filesystem ext3 --plugin plugins/admin-user --description 'Wheezy Base Image' --plugin plugins/publish-ami --plugin plugins/publish-snapshot --codename wheezy
+./build-debian-cloud ec2 --access-key "$key" --secret-key "$secret" --volume-size 50 --filesystem ext3 --plugin plugins/admin-user --description 'Wheezy Base Image' --codename wheezy
+if [ 0 -ne $? ]; then
+    err "something went wrong"
+    exit(1);
+fi
+
+out "done"
