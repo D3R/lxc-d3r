@@ -46,7 +46,14 @@ out "building image"
 cd ~root/build-debian-cloud
 curl https://github.com/andsens/build-debian-cloud/pull/79.patch | git am
 # ./build-debian-cloud ec2 --volume-size 50 --filesystem ext3 --plugin plugins/admin-user --description 'Wheezy Base Image' --plugin plugins/publish-ami --plugin plugins/publish-snapshot --codename wheezy
-./build-debian-cloud ec2 --access-key "$key" --secret-key "$secret" --volume-size 50 --filesystem ext3 --plugin plugins/admin-user --description 'Wheezy Base Image' --codename wheezy
+./build-debian-cloud ec2 --access-key "$key" \
+                         --secret-key "$secret" \
+                         --volume-size 50 \
+                         --filesystem ext3 \
+                         --locale en_GB \
+                         --timezone "Europe/London" \
+                         --description 'Wheezy Base Image' \
+                         --codename wheezy
 if [ 0 -ne $? ]; then
     err "something went wrong"
     exit 1
