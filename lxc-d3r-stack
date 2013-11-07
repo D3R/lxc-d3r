@@ -162,8 +162,7 @@ wget,\
 cron,\
 curl,\
 ntpdate,\
-rsyslog, \
-imagemagick
+rsyslog
 
     cache=$1
     arch=$2
