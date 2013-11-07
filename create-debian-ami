@@ -1,4 +1,7 @@
 #!/bin/sh
+#
+# Reference: https://wiki.debian.org/Cloud/AmazonEC2Image/Wheezy
+#
 
 out(){
     logger "$1"
