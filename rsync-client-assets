@@ -11,11 +11,12 @@ err(){
 usage()
 {
     cat <<EOF
-$1 -h|--help -s|--server=<server> -c|--client=<client handle>
+$1 -h|--help -s|--server=<server> -c|--client=<client handle> [-t|--type <core|wordpress>]
 
     -h|--help       Show this help message
     -s|--server     Server to connect to
     -c|--client     The client handle to use. The script will rsync from /clients/<client handle>/production/web/assets/*
+    -t|--type       The site type either core or standard
 EOF
     return 0
 }
@@ -34,6 +35,7 @@ do
         -h|--help)      usage $0 && exit 0;;
         -s|--server)    server=$2; shift 2;;
         -c|--client)    client=$2; shift 2;;
+        -t|--type)      type=$2; shift 2;;
         --)             shift 1; break ;;
         *)              break ;;
     esac
@@ -51,12 +53,21 @@ if [ -z "$client" ]; then
     exit 1
 fi
 
+if [ -z "$type" ]; then
+    type="core"
+fi
+
 RSYNC=$(which rsync)
 
 out "Server : $server"
 out "Client : $client"
+out "Type : $type"
 
-$RSYNC -avz siteadmin@$server:~/$client/production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
+if [ "wordpress" = "$type" ]; then
+    $RSYNC -avz siteadmin@$server:~/$client/production/* /mnt/assets/clients/$client/production/
+else
+    $RSYNC -avz siteadmin@$server:~/$client/production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
+fi
 if [ $? -ne 0 ]; then
     err "Unable to rsync assets"
     exit 1
