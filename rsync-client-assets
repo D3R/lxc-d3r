@@ -22,7 +22,7 @@ EOF
 }
 
 
-options=$(getopt -o hs:c: -l help,server:,client: -- "$@")
+options=$(getopt -o hs:c:t: -l help,server:,client:,type: -- "$@")
 if [ $? -ne 0 ]; then
     usage $(basename $0)
     exit 1
