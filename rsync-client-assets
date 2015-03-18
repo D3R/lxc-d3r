@@ -11,18 +11,19 @@ err(){
 usage()
 {
     cat <<EOF
-$1 -h|--help -s|--server=<server> -c|--client=<client handle> [-t|--type <core|wordpress>]
+$1 -h|--help -s|--server=<server> -c|--client=<client handle> [-t|--type <core|wordpress>] [-l|--legacy]
 
     -h|--help       Show this help message
     -s|--server     Server to connect to
     -c|--client     The client handle to use. The script will rsync from /clients/<client handle>/production/web/assets/*
     -t|--type       The site type either core or standard
+    -l|--legacy     This is a legacy site - set the base dir on the remote machine to /clients/<handle>/live
 EOF
     return 0
 }
 
 
-options=$(getopt -o hs:c:t: -l help,server:,client:,type: -- "$@")
+options=$(getopt -o hs:c:t:l -l help,server:,client:,type:legacy -- "$@")
 if [ $? -ne 0 ]; then
     usage $(basename $0)
     exit 1
@@ -36,6 +37,7 @@ do
         -s|--server)    server=$2; shift 2;;
         -c|--client)    client=$2; shift 2;;
         -t|--type)      type=$2; shift 2;;
+        -l|--legacy)    production="live"; shift 2;;
         --)             shift 1; break ;;
         *)              break ;;
     esac
@@ -56,6 +58,9 @@ fi
 if [ -z "$type" ]; then
     type="core"
 fi
+if [ -z "$production" ]; then
+    production="production"
+fi
 
 RSYNC=$(which rsync)
 
@@ -64,11 +69,11 @@ out "Client : $client"
 out "Type : $type"
 
 if [ "wordpress" = "$type" ]; then
-    mkdir -p /mnt/assets/clients/$client/production
-    $RSYNC -avz siteadmin@$server:~/$client/production/* /mnt/assets/clients/$client/production/
+    echo mkdir -p /mnt/assets/clients/$client/production
+    echo $RSYNC -avz siteadmin@$server:~/$client/$production/* /mnt/assets/clients/$client/production/
 else
-    mkdir -p /mnt/assets/clients/$client/production/web/assets
-    $RSYNC -avz siteadmin@$server:~/$client/production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
+    echo mkdir -p /mnt/assets/clients/$client/production/web/assets
+    echo $RSYNC -avz siteadmin@$server:~/$client/$production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
 fi
 if [ $? -ne 0 ]; then
     err "Unable to rsync assets"
