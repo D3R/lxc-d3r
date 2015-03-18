@@ -69,11 +69,11 @@ out "Client : $client"
 out "Type : $type"
 
 if [ "wordpress" = "$type" ]; then
-    echo mkdir -p /mnt/assets/clients/$client/production
-    echo $RSYNC -avz siteadmin@$server:~/$client/$production/* /mnt/assets/clients/$client/production/
+    mkdir -p /mnt/assets/clients/$client/production
+    $RSYNC -avz siteadmin@$server:~/$client/$production/* /mnt/assets/clients/$client/production/
 else
-    echo mkdir -p /mnt/assets/clients/$client/production/web/assets
-    echo $RSYNC -avz siteadmin@$server:~/$client/$production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
+    mkdir -p /mnt/assets/clients/$client/production/web/assets
+    $RSYNC -avz siteadmin@$server:~/$client/$production/web/assets/* /mnt/assets/clients/$client/production/web/assets/
 fi
 if [ $? -ne 0 ]; then
     err "Unable to rsync assets"
